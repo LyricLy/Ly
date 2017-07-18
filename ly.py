@@ -5,12 +5,14 @@
 # Commented code is for debugging, uncomment at will.
 
 import argparse
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument("filename", help="File to interpret.")
 parser.add_argument("-d", "--debug", help="Output additional debug information.", action="store_true")
 parser.add_argument("-s", "--slow", help="Go through the program step-by-step.", action="store_true")
 parser.add_argument("-i", "--input", help="Input for the program. If not given, you will be prompted if the program requires input.")
+parser.add_argument("-t", "--time", help="Time to wait between each execution tick.", type=float)
 args = parser.parse_args()
 
 # errors
@@ -77,10 +79,15 @@ stack = stacks[0]
 stack_pointer = 0
 idx = 0
 backup = None
+if args.time:
+    delay = args.time
+else:
+    delay = 0
 if args.debug:
     total_output = ""
 while idx < len(program):
     char = program[idx]
+    time.sleep(delay)
     try:
         if char.isdigit():
             stack.add_value(int(char))
