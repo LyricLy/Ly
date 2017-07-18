@@ -142,7 +142,7 @@ while idx < len(program):
         elif char == "u":
             if args.debug:
                 output = stack.pop_value()
-                print("outputted: " + output)
+                print("outputted: " + str(output))
                 total_output += output
             else:
                 print(stack.pop_value(), end="")
