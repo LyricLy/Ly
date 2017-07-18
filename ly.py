@@ -143,7 +143,7 @@ while idx < len(program):
             if args.debug:
                 output = stack.pop_value()
                 print("outputted: " + str(output))
-                total_output += output
+                total_output += str(output)
             else:
                 print(stack.pop_value(), end="")
         elif char == "r":
