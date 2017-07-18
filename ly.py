@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 # Ly interpreter in Python
 # Created by LyricLy
 # Commented code is for debugging, uncomment at will.
