@@ -6,6 +6,7 @@
 
 import argparse
 import time
+import random
 
 parser = argparse.ArgumentParser()
 parser.add_argument("filename", help="File to interpret.")
@@ -36,7 +37,7 @@ class Stack(list):
         if self:
             return self[-1]
         else:
-            return False
+            return None
      
     def pop_value(self):
         try:
@@ -205,7 +206,7 @@ while idx < len(program):
             else:
                 stack.add_value(0)
         elif char == "l":
-            if backup:
+            if backup != None:
                 stack.add_value(backup)
             else:
                 raise BackupCellError("attempted to load backup, but backup is empty")
@@ -228,7 +229,23 @@ while idx < len(program):
             except IndexError:
                 stacks.append(Stack())
             stack_pointer += 1
-            stack = stacks[stack_pointer]     
+            stack = stacks[stack_pointer]   
+        elif char == "$":
+            for pos, char in enumerate(program[idx+1:]):
+                # print("Char: " + char)
+                if char == "[":
+                    extra += 1
+                elif char == "]":
+                    if extra:
+                        extra -= 1
+                    else:
+                        # print("Position: " + str(pos))
+                        idx += pos + 1
+                        break
+        elif char == "?":
+            x = stack.pop_value()
+            y = stack.pop_value()
+            stack.add_value(random.randint(y, x))
         idx += 1
         if args.debug:
             if args.slow:
