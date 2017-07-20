@@ -31,6 +31,9 @@ class InputError(LyError):
     
 class BackupCellError(LyError):
     pass
+    
+class FunctionError(LyError):
+    pass
 
     
 class Stack(list):
@@ -235,6 +238,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 stack = stacks[stack_pointer]   
             elif char == "$":
                 for _ in range(stack.pop_value()):
+                    extra = 0
                     for pos, char in enumerate(program[idx+1:]):
                         # print("Char: " + char)
                         if char == "[":
@@ -286,13 +290,21 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                             stack.add_value(val)
                         else:
                             stack.add_value(ord(val))
-                    interpret(functions[function_name], function_input, function_execution, debug=debug, delay=delay, step_by_step=step_by_step)
+                    try:
+                        interpret(functions[function_name], function_input, function_execution, debug=debug, delay=delay, step_by_step=step_by_step)
+                    except FunctionError as err:
+                        err_info = str(err).split("$$")
+                        print("Error occurred in function {}, index {} (zero-indexed, includes comments)".format(function_name, err_info[1]))
+                        print(err_info[0])
+                        return
                 else:
                     functions[function_name] = function_body
         except (LyError, ZeroDivisionError) as err:
+            if output_function.__name__ == "function_execution":
+                raise FunctionError(type(err).__name__  + ": " + str(err) + "$$" + str(idx))
             print("Error occurred at program index {} (zero-indexed, includes comments)".format(idx), file=sys.stderr)
             print(type(err).__name__, str(err), sep=": ")
-            break
+            return
         idx += 1
         if debug:
             print(" | ".join([char, str(stacks), str(backup), output_function.__name__]), end=("\n" if not step_by_step else ""))
@@ -307,7 +319,6 @@ else:
         global total_output
         print("outputted: " + str(val))
         total_output += str(val)
-
 interpret(program, stdin, normal_execution, debug=args.debug, delay=args.time, step_by_step=args.slow)
 if args.debug:
     print("Total output: " + total_output)
