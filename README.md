@@ -8,10 +8,9 @@ Download `ly.py` and run it like this:
 ly.py myprogram.ly
 ```
 
-Optionally, you can also include code directly in the command line:
-
+There are also many optional flags, you can see all of them with this:
 ```
-ly.py "^"Hello, world!^"r[o]"
+ly.py -h
 ```
 
 For more information on the language, see the wiki.
