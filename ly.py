@@ -294,8 +294,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                         interpret(functions[function_name], function_input, function_execution, debug=debug, delay=delay, step_by_step=step_by_step)
                     except FunctionError as err:
                         err_info = str(err).split("$$")
-                        print("Error occurred in function {}, index {} (zero-indexed, includes comments)".format(function_name, err_info[1]))
-                        print(err_info[0])
+                        print("Error occurred in function {}, index {} (zero-indexed, includes comments)".format(function_name, err_info[1]), file=sys.stderr)
+                        print(err_info[0], file=sys.stderr)
                         return
                 else:
                     functions[function_name] = function_body
@@ -303,7 +303,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
             if output_function.__name__ == "function_execution":
                 raise FunctionError(type(err).__name__  + ": " + str(err) + "$$" + str(idx))
             print("Error occurred at program index {} (zero-indexed, includes comments)".format(idx), file=sys.stderr)
-            print(type(err).__name__, str(err), sep=": ")
+            print(type(err).__name__, str(err), sep=": ", file=sys.stderr)
             return
         idx += 1
         if debug:
