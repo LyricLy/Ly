@@ -69,12 +69,28 @@ for i in program:
     elif i == "]":
         count -= 1
     if count < 0:
-        print("Error occurred during parsing")
-        print("SyntaxError: unmatched brackets in program")
+        print("Error occurred during parsing", file=sys.stderr)
+        print("SyntaxError: unmatched [] brackets in program", file=sys.stderr)
         sys.exit(0)
 if count != 0:
-    print("Error occurred during parsing")
-    print("SyntaxError: unmatched brackets in program")
+    print("Error occurred during parsing", file=sys.stderr)
+    print("SyntaxError: unmatched [] brackets in program", file=sys.stderr)
+    sys.exit(0)
+    
+# make sure curly brackets match
+count = 0
+for i in program:
+    if i == "{":
+        count += 1
+    elif i == "}":
+        count -= 1
+    if count < 0:
+        print("Error occurred during parsing", file=sys.stderr)
+        print("SyntaxError: unmatched {} brackets in program", file=sys.stderr)
+        sys.exit(0)
+if count != 0:
+    print("Error occurred during parsing", file=sys.stderr)
+    print("SyntaxError: unmatched {} brackets in program", file=sys.stderr)
     sys.exit(0)
 
 function_text = "".join(re.findall("{(.*?)}", program))
