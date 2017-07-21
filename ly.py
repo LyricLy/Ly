@@ -315,6 +315,11 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                         return
                 else:
                     functions[function_name] = function_body
+            elif char == "=":
+                if stack.pop_value() == stack.get_value():
+                    stack.add_value(1)
+                else:
+                    stack.add_value(0)
         except (LyError, ZeroDivisionError) as err:
             if output_function.__name__ == "function_execution":
                 raise FunctionError(type(err).__name__  + ": " + str(err) + "$$" + str(idx))
