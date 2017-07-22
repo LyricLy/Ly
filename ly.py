@@ -165,6 +165,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
             elif char == "n":
                 if stdin:
                     split_stdin = stdin.split(" ")
+                    split_stdin = list(filter(bool, split_stdin))
                     try:
                         stack.add_value(int(split_stdin[0]))
                         stdin = " ".join(split_stdin[1:])
@@ -320,7 +321,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                     stack.add_value(1)
                 else:
                     stack.add_value(0)
-        except (LyError, ZeroDivisionError) as err:
+        except (LyError, ZeroDivisionError, TypeError) as err:
             if output_function.__name__ == "function_execution":
                 raise FunctionError(type(err).__name__  + ": " + str(err) + "$$" + str(idx))
             print("Error occurred at program index {} (zero-indexed, includes comments)".format(idx), file=sys.stderr)
