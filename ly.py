@@ -93,8 +93,8 @@ if count != 0:
     print("SyntaxError: unmatched {} brackets in program", file=sys.stderr)
     sys.exit(0)
 
-function_text = "".join(re.findall("{(.*?)}", program))
-input_count = (program.count("n") - function_text.count("n")) + (program.count("i") - function_text.count("i"))
+null_text = "".join(re.findall("{(.*?)}", program)) + "".join(re.findall('"(.*?)"', program))
+input_count = (program.count("n") - null_text.count("n")) + (program.count("i") - null_text.count("i"))
 if args.input:
     stdin = args.input
 elif input_count > 0:
