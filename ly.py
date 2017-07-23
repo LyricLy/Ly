@@ -92,8 +92,24 @@ if count != 0:
     print("Error occurred during parsing", file=sys.stderr)
     print("SyntaxError: unmatched {} brackets in program", file=sys.stderr)
     sys.exit(0)
+    
+# make sure parentheses match
+count = 0
+for i in program:
+    if i == "(":
+        count += 1
+    elif i == ")":
+        count -= 1
+    if count < 0:
+        print("Error occurred during parsing", file=sys.stderr)
+        print("SyntaxError: unmatched () brackets in program", file=sys.stderr)
+        sys.exit(0)
+if count != 0:
+    print("Error occurred during parsing", file=sys.stderr)
+    print("SyntaxError: unmatched () brackets in program", file=sys.stderr)
+    sys.exit(0)
 
-null_text = "".join(re.findall("{(.*?)}", program)) + "".join(re.findall('"(.*?)"', program))
+null_text = "".join(re.findall("{(.*?)}", program)) + "".join(re.findall('"(.*?)"', program)) + "".join(re.findall("#(.*)", program))
 input_count = (program.count("n") - null_text.count("n")) + (program.count("i") - null_text.count("i"))
 if args.input:
     stdin = args.input
@@ -216,11 +232,13 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                         idx += pos + 1
                         break
                 else:  # we didn't break, thus we've reached EOF 
-                    break
+                    return
             elif char == ";":
-                break
+                return
             elif char == ":":
-                stack.add_value(stack.get_value())
+                val = stack.get_value()
+                if val:
+                    stack.add_value(val)
             elif char == "p":
                 stack.pop_value()
             elif char == "!":
@@ -321,6 +339,25 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                     stack.add_value(1)
                 else:
                     stack.add_value(0)
+            elif char == "(":
+                body = ""
+                extra = 0
+                for pos, char in enumerate(program[idx+1:]):
+                    # print("Char: " + char)
+                    if char == "(":
+                        extra += 1
+                    elif char == ")":
+                        if extra:
+                            extra -= 1
+                        else:
+                            # print("Position: " + str(pos))
+                            idx += pos
+                            break
+                    elif char.isdigit():
+                        body += char
+                stack.add_value(int(body))
+            elif char == "y":
+                stack.add_value(len(stack))
         except (LyError, ZeroDivisionError, TypeError) as err:
             if output_function.__name__ == "function_execution":
                 raise FunctionError(type(err).__name__  + ": " + str(err) + "$$" + str(idx))
