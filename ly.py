@@ -61,62 +61,41 @@ try:
         program = file.read()
 except FileNotFoundError:
     print("That file couldn't be found.")
-# make sure brackets match
-count = 0
-for i in program:
-    if i == "[":
-        count += 1
-    elif i == "]":
-        count -= 1
-    if count < 0:
-        print("Error occurred during parsing", file=sys.stderr)
-        print("SyntaxError: unmatched [] brackets in program", file=sys.stderr)
-        sys.exit(0)
-if count != 0:
-    print("Error occurred during parsing", file=sys.stderr)
-    print("SyntaxError: unmatched [] brackets in program", file=sys.stderr)
-    sys.exit(0)
-    
-# make sure curly brackets match
-count = 0
-for i in program:
-    if i == "{":
-        count += 1
-    elif i == "}":
-        count -= 1
-    if count < 0:
-        print("Error occurred during parsing", file=sys.stderr)
-        print("SyntaxError: unmatched {} brackets in program", file=sys.stderr)
-        sys.exit(0)
-if count != 0:
-    print("Error occurred during parsing", file=sys.stderr)
-    print("SyntaxError: unmatched {} brackets in program", file=sys.stderr)
-    sys.exit(0)
-    
-# make sure parentheses match
-count = 0
-for i in program:
-    if i == "(":
-        count += 1
-    elif i == ")":
-        count -= 1
-    if count < 0:
-        print("Error occurred during parsing", file=sys.stderr)
-        print("SyntaxError: unmatched () brackets in program", file=sys.stderr)
-        sys.exit(0)
-if count != 0:
-    print("Error occurred during parsing", file=sys.stderr)
-    print("SyntaxError: unmatched () brackets in program", file=sys.stderr)
-    sys.exit(0)
 
-null_text = "".join(re.findall("{(.*?)}", program)) + "".join(re.findall('"(.*?)"', program)) + "".join(re.findall("#(.*)", program))
-input_count = (program.count("n") - null_text.count("n")) + (program.count("i") - null_text.count("i"))
+# remove comments and strings
+uncommented_program = re.sub(re.compile("#(.*)"), "", program)
+uncommented_program = re.sub(re.compile('"(.*)"', re.DOTALL), "", uncommented_program)
+
+# check for matching brackets
+def match_brackets(code):
+    start_chars = "({["
+    end_chars = ")}]"
+    stack = []
+    for char in code:
+        if char in start_chars:
+            stack.append(char)
+        elif char in end_chars:
+            if not stack:
+                return False
+            stack_top = stack.pop()
+            balancing_bracket = start_chars[end_chars.index(char)]
+            if stack_top != balancing_bracket:
+                return False
+    return not stack
+
+if not match_brackets(uncommented_program):
+    print("Error occurred during parsing", file=sys.stderr)
+    print("SyntaxError: Unmatched brackets in program", file=sys.stderr)
+
+main_program_body = re.sub(re.compile('.{(.*)}', re.DOTALL), "", uncommented_program)
+
 if args.input:
     stdin = args.input
-elif input_count > 0:
+elif "i" in main_program_body or "n" in main_program_body:
     stdin = input("Enter program input: ")
 else:
     stdin = None
+    
 def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_step=False):
     stacks = [Stack()]
     stack = stacks[0]
