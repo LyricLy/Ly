@@ -151,27 +151,55 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                                 idx = pos
                                 break
             elif char == "i":
-                try:
-                    stack.add_value(ord(stdin[0]))
-                    # print("consumed input " + stdin[0])
-                except IndexError:
-                    stack.add_value(0)
-                stdin = stdin[1:]
-            elif char == "n":
-                if stdin:
-                    split_stdin = stdin.split(" ")
-                    split_stdin = list(filter(bool, split_stdin))
-                    try:
-                        stack.add_value(int(split_stdin[0]))
-                        stdin = " ".join(split_stdin[1:])
-                    except ValueError:
-                        raise InputError("program expected integer input, got string instead")
+                if last == "&":
+                    for val in stdin[:]:
+                        stack.add_value(ord(val))
+                    stdin = ""
                 else:
-                    stack.add_value(0)       
+                    try:
+                        stack.add_value(ord(stdin[0]))
+                        # print("consumed input " + stdin[0])
+                    except IndexError:
+                        stack.add_value(0)
+                    stdin = stdin[1:]
+            elif char == "n":
+                if last == "&":
+                    if stdin:
+                        split_stdin = stdin.split(" ")
+                        split_stdin = list(filter(bool, split_stdin))
+                        for val in split_stdin[:]:
+                            try:
+                                stack.add_value(int(val))
+                            except ValueError:
+                                raise InputError("program expected integer input, got string instead")
+                        stdin = ""
+                    else:
+                        pass
+                else:
+                    if stdin:
+                        split_stdin = stdin.split(" ")
+                        split_stdin = list(filter(bool, split_stdin))
+                        try:
+                            stack.add_value(int(split_stdin[0]))
+                            stdin = " ".join(split_stdin[1:])
+                        except ValueError:
+                            raise InputError("program expected integer input, got string instead")
+                    else:
+                        stack.add_value(0)
             elif char == "o":
-                output_function(chr(stack.pop_value()))
+                if last == "&":
+                    for val in stack[:]:
+                        output_function(chr(val))
+                        stack.pop_value()
+                else:
+                    output_function(chr(stack.pop_value()))
             elif char == "u":
-                output_function(stack.pop_value())
+                if last == "&":
+                    for val in stack[:]:
+                        output_function(val)
+                        stack.pop_value()
+                else:
+                    output_function(stack.pop_value())
             elif char == "r":
                 stack.reverse()
             elif char == "+":
@@ -194,6 +222,10 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 x = stack.pop_value()
                 y = stack.pop_value()
                 stack.add_value(y % x)
+            elif char == "^":
+                x = stack.pop_value()
+                y = stack.pop_value()
+                stack.add_value(y ** x)
             elif char == '"':
                 for pos, char in enumerate(program[idx+1:]):
                     # print("Char: " + char)
@@ -215,23 +247,37 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
             elif char == ";":
                 return
             elif char == ":":
-                val = stack.get_value()
-                if val:
-                    stack.add_value(val)
+                if last == "&":
+                    for val in stack[:]:
+                        stack.add_value(val)
+                else:
+                    val = stack.get_value()
+                    if val:
+                        stack.add_value(val)
             elif char == "p":
-                stack.pop_value()
+                if last == "&":
+                    for _ in stack[:]:
+                        stack.pop_value()
+                else:
+                    stack.pop_value()
             elif char == "!":
                 if stack.pop_value() == 0:
                     stack.add_value(1)
                 else:
                     stack.add_value(0)
             elif char == "l":
-                if backup != None:
+                if type(backup) == list:
+                    for item in backup[:]:
+                        stack.add_value(item)
+                elif backup is not None:
                     stack.add_value(backup)
                 else:
                     raise BackupCellError("attempted to load backup, but backup is empty")
             elif char == "s":
-                backup = stack.get_value()
+                if last == "&":
+                    backup = stack[:]
+                else:
+                    backup = stack.get_value()
             elif char == "f":
                 x = stack.pop_value()
                 y = stack.pop_value()
