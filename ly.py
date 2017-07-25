@@ -355,7 +355,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                         interpret(functions[function_name], function_input, function_execution, debug=debug, delay=delay, step_by_step=step_by_step)
                     except FunctionError as err:
                         err_info = str(err).split("$$")
-                        print("Error occurred in function {}, index {} (zero-indexed, includes comments)".format(function_name, err_info[1]), file=sys.stderr)
+                        print("Error occurred in function {}, index {}, instruction {} (zero-indexed, includes comments)".format(function_name, err_info[1], err_info[2]), file=sys.stderr)
                         print(err_info[0], file=sys.stderr)
                         return
                 else:
@@ -386,8 +386,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 stack.add_value(len(stack))
         except (LyError, ZeroDivisionError, TypeError) as err:
             if output_function.__name__ == "function_execution":
-                raise FunctionError(type(err).__name__  + ": " + str(err) + "$$" + str(idx))
-            print("Error occurred at program index {} (zero-indexed, includes comments)".format(idx), file=sys.stderr)
+                raise FunctionError("{}: {}$${}$${}".format(type(err).__name__, str(err), str(idx), char))
+            print("Error occurred at program index {}, instruction {} (zero-indexed, includes comments)".format(idx, char), file=sys.stderr)
             print(type(err).__name__, str(err), sep=": ", file=sys.stderr)
             return
         idx += 1
