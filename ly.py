@@ -16,6 +16,7 @@ parser.add_argument("-d", "--debug", help="Output additional debug information."
 parser.add_argument("-s", "--slow", help="Go through the program step-by-step.", action="store_true")
 parser.add_argument("-i", "--input", help="Input for the program. If not given, you will be prompted if the program requires input.")
 parser.add_argument("-t", "--time", help="Time to wait between each execution tick.", type=float)
+parser.add_argument("-ni", "--no-input", help="Don't prompt for input, no matter what.", action="store_true")
 args = parser.parse_args()
 
 # errors
@@ -91,10 +92,10 @@ main_program_body = re.sub(re.compile('.{(.*)}', re.DOTALL), "", uncommented_pro
 
 if args.input:
     stdin = args.input
-elif "i" in main_program_body or "n" in main_program_body:
+elif ("i" in main_program_body or "n" in main_program_body) and not args.no_input:
     stdin = input("Enter program input: ")
 else:
-    stdin = None
+    stdin = ""
     
 def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_step=False):
     stacks = [Stack()]
