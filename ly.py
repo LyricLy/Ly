@@ -65,14 +65,14 @@ except FileNotFoundError:
 
 # remove comments and strings
 uncommented_program = re.sub(re.compile("#(.*)"), "", program)
-uncommented_program = re.sub(re.compile('"(.*)"', re.DOTALL), "", uncommented_program)
+uncommented_program = re.sub(re.compile('"(.*?)"', re.DOTALL), "", uncommented_program)
 
 # check for matching brackets
 def match_brackets(code):
     start_chars = "({["
     end_chars = ")}]"
     stack = []
-    for char in code:
+    for idx, char in enumerate(code):
         if char in start_chars:
             stack.append(char)
         elif char in end_chars:
@@ -87,6 +87,7 @@ def match_brackets(code):
 if not match_brackets(uncommented_program):
     print("Error occurred during parsing", file=sys.stderr)
     print("SyntaxError: Unmatched brackets in program", file=sys.stderr)
+    sys.exit(0)
 
 main_program_body = re.sub(re.compile('.{(.*)}', re.DOTALL), "", uncommented_program)
 
