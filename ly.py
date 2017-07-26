@@ -230,11 +230,21 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 stack.add_value(y ** x)
             elif char == '"':
                 for pos, char in enumerate(program[idx+1:]):
-                    # print("Char: " + char)
+                    print("Char: " + char)
                     if char == '"':
-                        # print("Position: " + str(pos))
-                        idx += pos + 1
-                        break
+                        if program[idx+pos] == "\\":
+                            stack.add_value(ord(char))
+                        else:
+                            # print("Position: " + str(pos))
+                            idx += pos + 1
+                            break
+                    elif char == "n":
+                        if program[idx+pos] == "\\":
+                            stack.add_value(ord('\n'))
+                        else:
+                            stack.add_value(ord(char))
+                    elif char == "\\" and program[pos+2] in ['"', 'n']:
+                        pass
                     else:
                         stack.add_value(ord(char))
             elif char == "#":
