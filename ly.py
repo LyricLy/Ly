@@ -233,12 +233,10 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 stack.add_value(y ** x)
             elif char == "L":
                 x = stack.pop_value()
-                y = stack.pop_value()
-                stack.add_value(int(y < x))
+                stack.add_value(int(stack.get_value() < x))
             elif char == "G":
                 x = stack.pop_value()
-                y = stack.pop_value()
-                stack.add_value(int(y > x))
+                stack.add_value(int(stack.get_value() > x))
             elif char == '"':
                 for pos, char in enumerate(program[idx+1:]):
                     # print("Char: " + char)
