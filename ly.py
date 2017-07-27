@@ -410,6 +410,11 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 x = str(stack.pop_value())
                 for digit in x:
                     stack.add_value(int(digit))
+            elif char == "J":
+                x = int("".join([str(x) for x in stack]))
+                for _ in stack[:]:
+                    stack.pop_value()
+                stack.add_value(x)
         except (LyError, ZeroDivisionError, TypeError) as err:
             if output_function.__name__ == "function_execution":
                 raise FunctionError("{}: {}$${}$${}".format(type(err).__name__, str(err), str(idx), char))
