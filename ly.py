@@ -205,9 +205,12 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
             elif char == "r":
                 stack.reverse()
             elif char == "+":
-                x = stack.pop_value()
-                y = stack.pop_value()
-                stack.add_value(y + x)
+                if last == "&":
+                    stack.add_value(sum(stack))
+                else:
+                    x = stack.pop_value()
+                    y = stack.pop_value()
+                    stack.add_value(y + x)
             elif char == "-":
                 x = stack.pop_value()
                 y = stack.pop_value()
@@ -228,9 +231,17 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 x = stack.pop_value()
                 y = stack.pop_value()
                 stack.add_value(y ** x)
+            elif char == "L":
+                x = stack.pop_value()
+                y = stack.pop_value()
+                stack.add_value(int(y < x))
+            elif char == "G":
+                x = stack.pop_value()
+                y = stack.pop_value()
+                stack.add_value(int(y > x))
             elif char == '"':
                 for pos, char in enumerate(program[idx+1:]):
-                    print("Char: " + char)
+                    # print("Char: " + char)
                     if char == '"':
                         if program[idx+pos] == "\\":
                             stack.add_value(ord(char))
@@ -395,6 +406,12 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 stack.add_value(int(body))
             elif char == "y":
                 stack.add_value(len(stack))
+            elif char == "c":
+                stack.add_value(len(str(stack.pop_value())))
+            elif char == "S":
+                x = str(stack.pop_value())
+                for digit in x:
+                    stack.add_value(int(digit))
         except (LyError, ZeroDivisionError, TypeError) as err:
             if output_function.__name__ == "function_execution":
                 raise FunctionError("{}: {}$${}$${}".format(type(err).__name__, str(err), str(idx), char))
