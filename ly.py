@@ -252,7 +252,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                             stack.add_value(ord('\n'))
                         else:
                             stack.add_value(ord(char))
-                    elif char == "\\" and program[pos+2] in ['"', 'n']:
+                    elif char == "\\" and program[idx+pos+2] in ['"', 'n']:
                         pass
                     else:
                         stack.add_value(ord(char))
