@@ -12,31 +12,41 @@ import re
 
 parser = argparse.ArgumentParser()
 parser.add_argument("filename", help="File to interpret.")
-parser.add_argument("-d", "--debug", help="Output additional debug information.", action="store_true")
-parser.add_argument("-s", "--slow", help="Go through the program step-by-step.", action="store_true")
-parser.add_argument("-i", "--input", help="Input for the program. If not given, you will be prompted if the program requires input.")
-parser.add_argument("-t", "--time", help="Time to wait between each execution tick.", type=float)
-parser.add_argument("-ni", "--no-input", help="Don't prompt for input, no matter what.", action="store_true")
+parser.add_argument(
+    "-d", "--debug", help="Output additional debug information.", action="store_true")
+parser.add_argument(
+    "-s", "--slow", help="Go through the program step-by-step.", action="store_true")
+parser.add_argument(
+    "-i", "--input", help="Input for the program. If not given, you will be prompted if the program requires input.")
+parser.add_argument(
+    "-t", "--time", help="Time to wait between each execution tick.", type=float)
+parser.add_argument("-ni", "--no-input",
+                    help="Don't prompt for input, no matter what.", action="store_true")
 args = parser.parse_args()
 
 # errors
 
+
 class LyError(Exception):
     pass
 
+
 class EmptyStackError(LyError):
     pass
-   
+
+
 class InputError(LyError):
     pass
-    
+
+
 class BackupCellError(LyError):
     pass
-    
+
+
 class FunctionError(LyError):
     pass
 
-    
+
 class Stack(list):
 
     def get_value(self):
@@ -44,18 +54,19 @@ class Stack(list):
             return self[-1]
         else:
             return None
-     
+
     def pop_value(self):
         try:
             return self.pop()
         except IndexError:
             raise EmptyStackError("cannot pop from an empty stack")
-            
+
     def add_value(self, value):
         if type(value) == list:
             self += value
         else:
             self.append(value)
+
 
 try:
     with open(args.filename) as file:
@@ -65,9 +76,12 @@ except FileNotFoundError:
 
 # remove comments and strings
 uncommented_program = re.sub(re.compile("#(.*)"), "", program)
-uncommented_program = re.sub(re.compile('"(.*?)"', re.DOTALL), "", uncommented_program)
+uncommented_program = re.sub(re.compile(
+    '"(.*?)"', re.DOTALL), "", uncommented_program)
 
 # check for matching brackets
+
+
 def match_brackets(code):
     start_chars = "({["
     end_chars = ")}]"
@@ -84,12 +98,14 @@ def match_brackets(code):
                 return False
     return not stack
 
+
 if not match_brackets(uncommented_program):
     print("Error occurred during parsing", file=sys.stderr)
     print("SyntaxError: Unmatched brackets in program", file=sys.stderr)
     sys.exit(0)
 
-main_program_body = re.sub(re.compile('.{(.*)}', re.DOTALL), "", uncommented_program)
+main_program_body = re.sub(re.compile(
+    '.{(.*)}', re.DOTALL), "", uncommented_program)
 
 if args.input:
     stdin = args.input
@@ -97,7 +113,8 @@ elif ("i" in main_program_body or "n" in main_program_body) and not args.no_inpu
     stdin = input("Enter program input: ")
 else:
     stdin = ""
-    
+
+
 def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_step=False):
     stacks = [Stack()]
     stack = stacks[0]
@@ -108,11 +125,11 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
     while idx < len(program):
         char = program[idx]
         try:
-            next = program[idx+1]
+            next = program[idx + 1]
         except IndexError:
             next = None
         try:
-            last = program[idx-1]
+            last = program[idx - 1]
         except IndexError:
             last = None
         if delay:
@@ -125,7 +142,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
             elif char == "[":
                 if not stack.get_value():
                     extra = 0
-                    for pos, char in enumerate(program[idx+1:]):
+                    for pos, char in enumerate(program[idx + 1:]):
                         # print("Char: " + char)
                         if char == "[":
                             extra += 1
@@ -173,7 +190,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                             try:
                                 stack.add_value(int(val))
                             except ValueError:
-                                raise InputError("program expected integer input, got string instead")
+                                raise InputError(
+                                    "program expected integer input, got string instead")
                         stdin = ""
                     else:
                         pass
@@ -185,7 +203,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                             stack.add_value(int(split_stdin[0]))
                             stdin = " ".join(split_stdin[1:])
                         except ValueError:
-                            raise InputError("program expected integer input, got string instead")
+                            raise InputError(
+                                "program expected integer input, got string instead")
                     else:
                         stack.add_value(0)
             elif char == "o":
@@ -238,32 +257,32 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 x = stack.pop_value()
                 stack.add_value(int(stack.get_value() > x))
             elif char == '"':
-                for pos, char in enumerate(program[idx+1:]):
+                for pos, char in enumerate(program[idx + 1:]):
                     # print("Char: " + char)
                     if char == '"':
-                        if program[idx+pos] == "\\":
+                        if program[idx + pos] == "\\":
                             stack.add_value(ord(char))
                         else:
                             # print("Position: " + str(pos))
                             idx += pos + 1
                             break
                     elif char == "n":
-                        if program[idx+pos] == "\\":
+                        if program[idx + pos] == "\\":
                             stack.add_value(ord('\n'))
                         else:
                             stack.add_value(ord(char))
-                    elif char == "\\" and program[idx+pos+2] in ['"', 'n']:
+                    elif char == "\\" and program[idx + pos + 2] in ['"', 'n']:
                         pass
                     else:
                         stack.add_value(ord(char))
             elif char == "#":
-                for pos, char in enumerate(program[idx+1:]):
+                for pos, char in enumerate(program[idx + 1:]):
                     # print("Char: " + char)
                     if char == '\n':
                         # print("Position: " + str(pos))
                         idx += pos + 1
                         break
-                else:  # we didn't break, thus we've reached EOF 
+                else:  # we didn't break, thus we've reached EOF
                     return
             elif char == ";":
                 return
@@ -293,7 +312,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 elif backup is not None:
                     stack.add_value(backup)
                 else:
-                    raise BackupCellError("attempted to load backup, but backup is empty")
+                    raise BackupCellError(
+                        "attempted to load backup, but backup is empty")
             elif char == "s":
                 if last == "&":
                     backup = stack[:]
@@ -308,19 +328,20 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 if stack_pointer > 0:
                     stack_pointer -= 1
                 else:
-                    stacks.insert(0, Stack())  # since this changes the indexing we don't need to decrement the pointer
+                    # since this changes the indexing we don't need to decrement the pointer
+                    stacks.insert(0, Stack())
                 stack = stacks[stack_pointer]
             elif char == ">":
                 try:
-                    stacks[stack_pointer+1]
+                    stacks[stack_pointer + 1]
                 except IndexError:
                     stacks.append(Stack())
                 stack_pointer += 1
-                stack = stacks[stack_pointer]   
+                stack = stacks[stack_pointer]
             elif char == "$":
                 for _ in range(stack.pop_value()):
                     extra = 0
-                    for pos, char in enumerate(program[idx+1:]):
+                    for pos, char in enumerate(program[idx + 1:]):
                         # print("Char: " + char)
                         if char == "[":
                             extra += 1
@@ -339,7 +360,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 function_name = last
                 function_body = ""
                 extra = 0
-                for pos, char in enumerate(program[idx+1:]):
+                for pos, char in enumerate(program[idx + 1:]):
                     # print("Char: " + char)
                     if char == "{":
                         extra += 1
@@ -362,9 +383,11 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                             function_input += chr(stack.pop_value())
                         elif param == "i":
                             function_input += str(stack.pop_value())
+
                     def stack_addition(val):
                         global stack
                         stack.add_value(val)
+
                     def function_execution(val):
                         global stack_addition
                         if type(val) != str:
@@ -372,10 +395,12 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                         else:
                             stack.add_value(ord(val))
                     try:
-                        interpret(functions[function_name], function_input, function_execution, debug=debug, delay=delay, step_by_step=step_by_step)
+                        interpret(functions[function_name], function_input, function_execution,
+                                  debug=debug, delay=delay, step_by_step=step_by_step)
                     except FunctionError as err:
                         err_info = str(err).split("$$")
-                        print("Error occurred in function {}, index {}, instruction {} (zero-indexed, includes comments)".format(function_name, err_info[1], err_info[2]), file=sys.stderr)
+                        print("Error occurred in function {}, index {}, instruction {} (zero-indexed, includes comments)".format(
+                            function_name, err_info[1], err_info[2]), file=sys.stderr)
                         print(err_info[0], file=sys.stderr)
                         return
                 else:
@@ -388,7 +413,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
             elif char == "(":
                 body = ""
                 extra = 0
-                for pos, char in enumerate(program[idx+1:]):
+                for pos, char in enumerate(program[idx + 1:]):
                     # print("Char: " + char)
                     if char == "(":
                         extra += 1
@@ -415,26 +440,34 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 for _ in stack[:]:
                     stack.pop_value()
                 stack.add_value(x)
+            elif char == "a":
+                stack.sort()
         except (LyError, ZeroDivisionError, TypeError) as err:
             if output_function.__name__ == "function_execution":
-                raise FunctionError("{}: {}$${}$${}".format(type(err).__name__, str(err), str(idx), char))
+                raise FunctionError("{}: {}$${}$${}".format(
+                    type(err).__name__, str(err), str(idx), char))
             print("Error occurred at program index {}, instruction {} (zero-indexed, includes comments)".format(idx, char), file=sys.stderr)
             print(type(err).__name__, str(err), sep=": ", file=sys.stderr)
             return
         idx += 1
         if debug:
-            print(" | ".join([char, str(stacks), str(backup), output_function.__name__]), end=("\n" if not step_by_step else ""))
+            print(" | ".join([char, str(stacks), str(backup), output_function.__name__]), end=(
+                "\n" if not step_by_step else ""))
         if step_by_step:
             input()
+
+
 if not args.debug:
     def normal_execution(val):
         print(str(val), end="")
 else:
     total_output = ""
+
     def normal_execution(val):
         global total_output
         print("outputted: " + str(val))
         total_output += str(val)
-interpret(program, stdin, normal_execution, debug=args.debug, delay=args.time, step_by_step=args.slow)
+interpret(program, stdin, normal_execution, debug=args.debug,
+          delay=args.time, step_by_step=args.slow)
 if args.debug:
     print("Total output: " + total_output)
