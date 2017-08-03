@@ -462,7 +462,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
 
 if not args.debug:
     def normal_execution(val):
-        print(str(val), end="")
+        print(str(val), end="", flush=True)
 else:
     total_output = ""
 
