@@ -9,6 +9,7 @@ import time
 import random
 import sys
 import re
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument("filename", help="File to interpret.")
@@ -20,6 +21,8 @@ parser.add_argument(
     "-i", "--input", help="Input for the program. If not given, you will be prompted if the program requires input.")
 parser.add_argument(
     "-t", "--time", help="Time to wait between each execution tick.", type=float)
+parser.add_argument(
+    "-ti", "--timeit", help="Time the program and output how long it took to finish execution.", action="store_true")
 parser.add_argument("-ni", "--no-input",
                     help="Don't prompt for input, no matter what.", action="store_true")
 args = parser.parse_args()
@@ -467,7 +470,11 @@ else:
         global total_output
         print("outputted: " + str(val))
         total_output += str(val)
+start = time.time()
 interpret(program, stdin, normal_execution, debug=args.debug,
           delay=args.time, step_by_step=args.slow)
+end = time.time()
+if args.timeit:
+    print("\nTotal execution time in seconds: " + str(end - start))
 if args.debug:
-    print("Total output: " + total_output)
+    print("\nTotal output: " + total_output)
