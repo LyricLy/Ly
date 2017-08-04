@@ -219,8 +219,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                     output_function(chr(stack.pop_value()))
             elif char == "u":
                 if last == "&":
-                    for val in stack[:]:
-                        output_function(val)
+                    output_function(" ".join([str(x) for x in stack[:]]))
+                    for _ in stack[:]:
                         stack.pop_value()
                 else:
                     output_function(stack.pop_value())
