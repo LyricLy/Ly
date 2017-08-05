@@ -429,7 +429,10 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                             break
                     elif char.isdigit():
                         body += char
-                stack.add_value(int(body))
+                try:
+                    stack.add_value(int(body))
+                except TypeError:
+                    pass
             elif char == "y":
                 stack.add_value(len(stack))
             elif char == "c":
@@ -439,13 +442,16 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 for digit in x:
                     stack.add_value(int(digit))
             elif char == "J":
-                x = int("".join([str(x) for x in stack]))
-                for _ in stack[:]:
-                    stack.pop_value()
-                stack.add_value(x)
+                try:
+                    x = int("".join([str(x) for x in stack]))
+                    for _ in stack[:]:
+                        stack.pop_value()
+                    stack.add_value(x)
+                except TypeError:
+                    raise EmptyStackError("cannot join an empty stack")
             elif char == "a":
                 stack.sort()
-        except (LyError, ZeroDivisionError, TypeError) as err:
+        except (LyError, ZeroDivisionError) as err:
             if output_function.__name__ == "function_execution":
                 raise FunctionError("{}: {}$${}$${}".format(
                     type(err).__name__, str(err), str(idx), char))
