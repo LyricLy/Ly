@@ -295,7 +295,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                         stack.add_value(val)
                 else:
                     val = stack.get_value()
-                    if val:
+                    if val is not None:
                         stack.add_value(val)
             elif char == "p":
                 if last == "&":
