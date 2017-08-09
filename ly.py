@@ -80,7 +80,7 @@ except FileNotFoundError:
 # remove comments and strings
 uncommented_program = re.sub(re.compile("#(.*)"), "", program)
 uncommented_program = re.sub(re.compile(
-    '"(?:\\.|[^"\\])*"', re.DOTALL), "", uncommented_program)
+    '"(?:\\\\.|[^"\\\\])*"', re.DOTALL), "", uncommented_program)
 
 # check for matching brackets
 
