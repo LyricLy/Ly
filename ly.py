@@ -80,7 +80,7 @@ except FileNotFoundError:
 # remove comments and strings
 uncommented_program = re.sub(re.compile("#(.*)"), "", program)
 uncommented_program = re.sub(re.compile(
-    '"(.*?)"', re.DOTALL), "", uncommented_program)
+    '"(?:\\.|[^"\\])*"', re.DOTALL), "", uncommented_program)
 
 # check for matching brackets
 
@@ -431,7 +431,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                         body += char
                 try:
                     stack.add_value(int(body))
-                except TypeError:
+                except ValueError:
                     pass
             elif char == "y":
                 stack.add_value(len(stack))
