@@ -109,23 +109,28 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
             else:
                 return None
 
-        def pop_value(self):
+        def pop_value(self, *, implicit_input=True):
             global stdin
+            
             try:
                 return self.pop()
             except IndexError:
-                if stdin is None:
-                    stdin = input()
-                if stdin:
-                    split_stdin = stdin.split(" ")[::-1]
-                    split_stdin = list(filter(bool, split_stdin))
-                    try:
-                        stdin = " ".join(split_stdin[1:])[::-1]
-                        return int(split_stdin[0])
-                    except ValueError:
-                        raise EmptyStackError("cannot pop from an empty stack, implicit input failed")
+                if implicit_input:
+                    if stdin is None:
+                        stdin = input()
+                    if stdin:
+                        split_stdin = stdin.split(" ")[::-1]
+                        split_stdin = list(filter(bool, split_stdin))
+                        try:
+                            stdin = " ".join(split_stdin[1:][::-1])
+                            result = int(split_stdin[0])
+                            return result
+                        except ValueError:
+                            raise EmptyStackError("cannot pop from an empty stack, implicit input invalid")
+                    else:
+                        raise EmptyStackError("cannot pop from an empty stack, implicit input unavailable")
                 else:
-                    raise EmptyStackError("cannot pop from an empty stack, implicit input failed")
+                    raise EmptyStackError("cannot pop from an empty stack")
 
         def add_value(self, value):
             if type(value) == list:
@@ -321,7 +326,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                     for _ in stack[:]:
                         stack.pop_value()
                 else:
-                    stack.pop_value()
+                    stack.pop_value(implicit_input=False)
             elif char == "!":
                 if stack.pop_value() == 0:
                     stack.add_value(1)
