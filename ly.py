@@ -50,27 +50,6 @@ class FunctionError(LyError):
     pass
 
 
-class Stack(list):
-
-    def get_value(self):
-        if self:
-            return self[-1]
-        else:
-            return None
-
-    def pop_value(self):
-        try:
-            return self.pop()
-        except IndexError:
-            raise EmptyStackError("cannot pop from an empty stack")
-
-    def add_value(self, value):
-        if type(value) == list:
-            self += value
-        else:
-            self.append(value)
-
-
 try:
     with open(args.filename) as file:
         program = file.read()
@@ -112,13 +91,49 @@ main_program_body = re.sub(re.compile(
 
 if args.input:
     stdin = args.input
-elif ("i" in main_program_body or "n" in main_program_body) and not args.no_input:
-    stdin = input("Enter program input: ")
+elif args.no_input:
+    stdin = False
 else:
-    stdin = ""
+    stdin = None
 
 
 def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_step=False):
+
+
+    class Stack(list):
+        global stdin
+        
+        def get_value(self):
+            if self:
+                return self[-1]
+            else:
+                return None
+
+        def pop_value(self):
+            global stdin
+            try:
+                return self.pop()
+            except IndexError:
+                if stdin is None:
+                    stdin = input()
+                if stdin:
+                    split_stdin = stdin.split(" ")[::-1]
+                    split_stdin = list(filter(bool, split_stdin))
+                    try:
+                        stdin = " ".join(split_stdin[1:])[::-1]
+                        return int(split_stdin[0])
+                    except ValueError:
+                        raise EmptyStackError("cannot pop from an empty stack, implicit input failed")
+                else:
+                    raise EmptyStackError("cannot pop from an empty stack, implicit input failed")
+
+        def add_value(self, value):
+            if type(value) == list:
+                self += value
+            else:
+                self.append(value)
+
+
     stacks = [Stack()]
     stack = stacks[0]
     stack_pointer = 0
@@ -173,6 +188,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                                 idx = pos
                                 break
             elif char == "i":
+                if stdin is None:
+                    stdin = input()
                 if last == "&":
                     for val in stdin[:]:
                         stack.add_value(ord(val))
@@ -185,6 +202,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                         stack.add_value(0)
                     stdin = stdin[1:]
             elif char == "n":
+                if stdin is None:
+                    stdin = input()
                 if last == "&":
                     if stdin:
                         split_stdin = stdin.split(" ")
@@ -466,6 +485,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 "\n" if not step_by_step else ""))
         if step_by_step:
             input()
+    
+    output_function(" ".join([str(x) for x in stack]))
 
 
 if not args.debug:
