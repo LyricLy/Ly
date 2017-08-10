@@ -451,6 +451,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                     raise EmptyStackError("cannot join an empty stack")
             elif char == "a":
                 stack.sort()
+            elif char == "N":
+                stack.add_value(-stack.pop_value())
         except (LyError, ZeroDivisionError) as err:
             if output_function.__name__ == "function_execution":
                 raise FunctionError("{}: {}$${}$${}".format(
