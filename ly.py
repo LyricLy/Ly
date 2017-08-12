@@ -58,12 +58,11 @@ except FileNotFoundError:
 
 # remove comments and strings
 uncommented_program = re.sub(re.compile(
-    '"(?:\\\\.|[^"\\\\])*"', re.DOTALL), "", program)
+    '^([^#\n]*?)"(?:\\\\.|[^"\\\\])*"', re.DOTALL | re.MULTILINE), "", program)
     
 uncommented_program = re.sub(re.compile("#(.*)"), "", uncommented_program)
 
 # check for matching brackets
-
 
 def match_brackets(code):
     start_chars = "({["
