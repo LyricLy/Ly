@@ -55,6 +55,7 @@ try:
         program = file.read()
 except FileNotFoundError:
     print("That file couldn't be found.")
+    sys.exit(0)
 
 # remove comments and strings
 uncommented_program = re.sub(re.compile(
@@ -99,9 +100,9 @@ else:
 
 def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_step=False):
 
-
-    class Stack(list):
-        global stdin
+    class Stack(list):   
+        nonlocal debug
+        nonlocal stdin
         
         def get_value(self):
             if self:
@@ -109,13 +110,14 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
             else:
                 return None
 
-        def pop_value(self, *, implicit_input=True):
-            global stdin
+        def pop_value(self, *, implicit=True):
+            nonlocal debug
+            nonlocal stdin
             
             try:
                 return self.pop()
             except IndexError:
-                if implicit_input:
+                if implicit:
                     if stdin is None:
                         stdin = input()
                     if stdin:
@@ -124,11 +126,15 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                         try:
                             stdin = " ".join(split_stdin[1:][::-1])
                             result = int(split_stdin[0])
+                            if debug:
+                                print("stack empty, using implicit input")
                             return result
                         except ValueError:
                             raise EmptyStackError("cannot pop from an empty stack, input invalid")
                     else:
-                        raise EmptyStackError("cannot pop from an empty stack, no input given")
+                        if debug:
+                            print("stack and input empty, using implicit zero")
+                        return 0
                 else:
                     raise EmptyStackError("cannot pop from an empty stack")
 
@@ -239,16 +245,16 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 if last == "&":
                     for val in stack[:]:
                         output_function(chr(val))
-                        stack.pop_value(implicit_input=False)
+                        stack.pop_value(implicit=False)
                 else:
-                    output_function(chr(stack.pop_value(implicit_input=False)))
+                    output_function(chr(stack.pop_value(implicit=False)))
             elif char == "u":
                 if last == "&":
                     output_function(" ".join([str(x) for x in stack[:]]))
                     for _ in stack[:]:
-                        stack.pop_value(implicit_input=False)
+                        stack.pop_value(implicit=False)
                 else:
-                    output_function(stack.pop_value(implicit_input=False))
+                    output_function(stack.pop_value(implicit=False))
             elif char == "r":
                 stack.reverse()
             elif char == "+":
@@ -325,9 +331,9 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
             elif char == "p":
                 if last == "&":
                     for _ in stack[:]:
-                        stack.pop_value(implicit_input=False)
+                        stack.pop_value(implicit=False)
                 else:
-                    stack.pop_value(implicit_input=False)
+                    stack.pop_value(implicit=False)
             elif char == "!":
                 if stack.pop_value() == 0:
                     stack.add_value(1)
@@ -412,12 +418,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                         elif param == "i":
                             function_input += str(stack.pop_value())
 
-                    def stack_addition(val):
-                        global stack
-                        stack.add_value(val)
-
                     def function_execution(val):
-                        global stack_addition
                         if type(val) != str:
                             stack.add_value(val)
                         else:
@@ -479,7 +480,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
             elif char == "N":
                 stack.add_value(-stack.pop_value())
             elif char == "I":
-                stack.add_value(stack[stack.pop_value(implicit_input=False)])
+                stack.add_value(stack[stack.pop_value(implicit=False)])
         except errors as err:
             if output_function.__name__ == "function_execution":
                 raise FunctionError("{}: {}$${}$${}".format(
@@ -494,6 +495,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
         if step_by_step:
             input()
     
+    if debug:
+        print("outputting implicitly")
     output_function(" ".join([str(x) for x in stack]))
 
 
