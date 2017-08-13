@@ -126,9 +126,9 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                             result = int(split_stdin[0])
                             return result
                         except ValueError:
-                            raise EmptyStackError("cannot pop from an empty stack, implicit input invalid")
+                            raise EmptyStackError("cannot pop from an empty stack, input invalid")
                     else:
-                        raise EmptyStackError("cannot pop from an empty stack, implicit input unavailable")
+                        raise EmptyStackError("cannot pop from an empty stack, no input given")
                 else:
                     raise EmptyStackError("cannot pop from an empty stack")
 
@@ -145,6 +145,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
     idx = 0
     backup = None
     functions = {}
+    errors = (LyError, ZeroDivisionError, IndexError)
     while idx < len(program):
         char = program[idx]
         try:
@@ -238,16 +239,16 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 if last == "&":
                     for val in stack[:]:
                         output_function(chr(val))
-                        stack.pop_value()
+                        stack.pop_value(implicit_input=False)
                 else:
-                    output_function(chr(stack.pop_value()))
+                    output_function(chr(stack.pop_value(implicit_input=False)))
             elif char == "u":
                 if last == "&":
                     output_function(" ".join([str(x) for x in stack[:]]))
                     for _ in stack[:]:
-                        stack.pop_value()
+                        stack.pop_value(implicit_input=False)
                 else:
-                    output_function(stack.pop_value())
+                    output_function(stack.pop_value(implicit_input=False))
             elif char == "r":
                 stack.reverse()
             elif char == "+":
@@ -324,7 +325,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
             elif char == "p":
                 if last == "&":
                     for _ in stack[:]:
-                        stack.pop_value()
+                        stack.pop_value(implicit_input=False)
                 else:
                     stack.pop_value(implicit_input=False)
             elif char == "!":
@@ -477,7 +478,9 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 stack.sort()
             elif char == "N":
                 stack.add_value(-stack.pop_value())
-        except (LyError, ZeroDivisionError) as err:
+            elif char == "I":
+                stack.add_value(stack[stack.pop_value(implicit_input=False)])
+        except errors as err:
             if output_function.__name__ == "function_execution":
                 raise FunctionError("{}: {}$${}$${}".format(
                     type(err).__name__, str(err), str(idx), char))
