@@ -90,15 +90,8 @@ if not match_brackets(uncommented_program):
 main_program_body = re.sub(re.compile(
     '.{(.*)}', re.DOTALL), "", uncommented_program)
 
-if args.input:
-    stdin = args.input
-elif args.no_input:
-    stdin = False
-else:
-    stdin = None
 
-
-def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_step=False):
+def interpret(program, input_function, output_function, *, debug=False, delay=0, step_by_step=False):
 
     class Stack(list):   
         nonlocal debug
@@ -110,33 +103,37 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
             else:
                 return None
 
-        def pop_value(self, *, implicit=True):
+        def pop_value(self, count=1, implicit=True):
             nonlocal debug
             nonlocal stdin
             
-            try:
-                return self.pop()
-            except IndexError:
-                if implicit:
-                    if stdin is None:
-                        stdin = input()
-                    if stdin:
-                        split_stdin = stdin.split(" ")[::-1]
-                        split_stdin = list(filter(bool, split_stdin))
+            results = []
+            
+            for _ in range(count):
+                try:
+                    results.append(self.pop())
+                except IndexError:
+                    if implicit:
                         try:
-                            stdin = " ".join(split_stdin[1:][::-1])
-                            result = int(split_stdin[0])
+                            stdin = input_function()
+                        except EOFError:
+                            stdin = ""
+                        if stdin:
+                            try:
+                                result = int(stdin)
+                                if debug:
+                                    print("stack empty, using implicit input")
+                                results.insert(0, result)
+                            except ValueError:
+                                raise EmptyStackError("cannot pop from an empty stack, input invalid")
+                        else:
                             if debug:
-                                print("stack empty, using implicit input")
-                            return result
-                        except ValueError:
-                            raise EmptyStackError("cannot pop from an empty stack, input invalid")
+                                print("stack and input empty, using implicit zero")
+                            results.insert(0, 0)
                     else:
-                        if debug:
-                            print("stack and input empty, using implicit zero")
-                        return 0
-                else:
-                    raise EmptyStackError("cannot pop from an empty stack")
+                        raise EmptyStackError("cannot pop from an empty stack")
+
+            return results[0] if len(results) <= 1 else results
 
         def add_value(self, value):
             if type(value) == list:
@@ -144,6 +141,29 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
             else:
                 self.append(value)
 
+    def take_input():
+        nonlocal input_function
+        
+        try:
+            stdin = input_function()
+        except EOFError:
+            stdin = ""
+        
+        return stdin
+                
+    def dump_input():
+        nonlocal stdin
+        nonlocal take_input
+        
+        stdin = take_input()
+        
+        while stdin:
+            try:
+                stack.add_value(int(stdin))
+            except ValueError:
+                raise InputError(
+                    "program expected integer input, got string instead")
+            stdin = take_input()
 
     stacks = [Stack()]
     stack = stacks[0]
@@ -165,7 +185,29 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
         if delay:
             time.sleep(delay)
         try:
-            if next == "{":
+            if char in functions:
+                def function_input():
+                    nonlocal stack
+                    
+                    return str(stack.pop_value())
+                            
+                def function_execution(val):
+                    nonlocal stack
+                
+                    if type(val) != str:
+                        stack.add_value(val)
+                    else:
+                        stack.add_value(ord(val))
+                try:
+                    interpret(functions[function_name], function_input, function_execution,
+                              debug=debug, delay=delay, step_by_step=step_by_step)
+                except FunctionError as err:
+                    err_info = str(err).split("$$")
+                    print("Error occurred in function {}, index {}, instruction {} (zero-indexed, includes comments)".format(
+                        function_name, err_info[1], err_info[2]), file=sys.stderr)
+                    print(err_info[0], file=sys.stderr)
+                    return
+            elif next == "{":
                 pass
             elif char.isdigit():
                 stack.add_value(int(char))
@@ -200,49 +242,23 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                                 idx = pos
                                 break
             elif char == "i":
-                if stdin is None:
-                    stdin = input()
+                stdin = input_function()
+                for char in stdin:
+                    stack.add_value(ord(char))
+            elif char == "n":
                 if last == "&":
-                    for val in stdin[:]:
-                        stack.add_value(ord(val))
-                    stdin = ""
+                    dump_input()
                 else:
                     try:
-                        stack.add_value(ord(stdin[0]))
-                        # print("consumed input " + stdin[0])
-                    except IndexError:
-                        stack.add_value(0)
-                    stdin = stdin[1:]
-            elif char == "n":
-                if stdin is None:
-                    stdin = input()
-                if last == "&":
-                    if stdin:
-                        split_stdin = stdin.split(" ")
-                        split_stdin = list(filter(bool, split_stdin))
-                        for val in split_stdin[:]:
-                            try:
-                                stack.add_value(int(val))
-                            except ValueError:
-                                raise InputError(
-                                    "program expected integer input, got string instead")
-                        stdin = ""
-                    else:
-                        pass
-                else:
-                    if stdin:
-                        split_stdin = stdin.split(" ")
-                        split_stdin = list(filter(bool, split_stdin))
-                        try:
-                            stack.add_value(int(split_stdin[0]))
-                            stdin = " ".join(split_stdin[1:])
-                        except ValueError:
-                            raise InputError(
-                                "program expected integer input, got string instead")
-                    else:
-                        stack.add_value(0)
+                        stack.add_value(int(take_input()))
+                    except ValueError:
+                        raise InputError(
+                            "program expected integer input, got string instead")
             elif char == "o":
                 if last == "&":
+                    if not stack:
+                        for char in take_input():
+                            stack.add_value(ord(char))
                     for val in stack[:]:
                         output_function(chr(val))
                         stack.pop_value(implicit=False)
@@ -250,39 +266,40 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                     output_function(chr(stack.pop_value(implicit=False)))
             elif char == "u":
                 if last == "&":
+                    if not stack:
+                        dump_input()
                     output_function(" ".join([str(x) for x in stack[:]]))
                     for _ in stack[:]:
                         stack.pop_value(implicit=False)
                 else:
                     output_function(stack.pop_value(implicit=False))
             elif char == "r":
+                if not stack:
+                    dump_input()
                 stack.reverse()
             elif char == "+":
                 if last == "&":
+                    if not stack:
+                        dump_input()
                     stack.add_value(sum(stack))
                 else:
-                    x = stack.pop_value()
-                    y = stack.pop_value()
+                    x, y = stack.pop_value(2)
                     stack.add_value(y + x)
             elif char == "-":
-                x = stack.pop_value()
-                y = stack.pop_value()
+                x, y = stack.pop_value(2)
                 stack.add_value(y - x)
             elif char == "*":
-                x = stack.pop_value()
-                y = stack.pop_value()
+                x, y = stack.pop_value(2)
                 stack.add_value(y * x)
             elif char == "/":
-                x = stack.pop_value()
-                y = stack.pop_value()
+                x, y = stack.pop_value(2)
                 stack.add_value(y / x)
             elif char == "%":
                 x = stack.pop_value()
                 y = stack.pop_value()
                 stack.add_value(y % x)
             elif char == "^":
-                x = stack.pop_value()
-                y = stack.pop_value()
+                x, y = stack.pop_value(2)
                 stack.add_value(y ** x)
             elif char == "L":
                 x = stack.pop_value()
@@ -322,6 +339,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 return
             elif char == ":":
                 if last == "&":
+                    if not stdin:
+                        dump_input()
                     for val in stack[:]:
                         stack.add_value(val)
                 else:
@@ -350,6 +369,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                         "attempted to load backup, but backup is empty")
             elif char == "s":
                 if last == "&":
+                    if not stack:
+                        dump_input()
                     backup = stack[:]
                 else:
                     backup = stack.get_value()
@@ -373,7 +394,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 stack_pointer += 1
                 stack = stacks[stack_pointer]
             elif char == "$":
-                for _ in range(stack.pop_value()):
+                for _ in range(stack.pop_value(implicit=False)):
                     extra = 0
                     for pos, char in enumerate(program[idx + 1:]):
                         # print("Char: " + char)
@@ -387,8 +408,7 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                                 idx += pos + 1
                                 break
             elif char == "?":
-                x = stack.pop_value()
-                y = stack.pop_value()
+                x, y = stack.pop_value(2)
                 stack.add_value(random.randint(y, x))
             elif char == "{":
                 function_name = last
@@ -407,35 +427,11 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                             break
                     else:
                         function_body += char
-                if function_name in functions:
-                    function_params = function_body.split(",")
-                    function_input = ""
-                    for param in function_params:
-                        if param.isdigit():
-                            function_input += param + " "
-                        elif param == "c":
-                            function_input += chr(stack.pop_value())
-                        elif param == "i":
-                            function_input += str(stack.pop_value())
-
-                    def function_execution(val):
-                        if type(val) != str:
-                            stack.add_value(val)
-                        else:
-                            stack.add_value(ord(val))
-                    try:
-                        interpret(functions[function_name], function_input, function_execution,
-                                  debug=debug, delay=delay, step_by_step=step_by_step)
-                    except FunctionError as err:
-                        err_info = str(err).split("$$")
-                        print("Error occurred in function {}, index {}, instruction {} (zero-indexed, includes comments)".format(
-                            function_name, err_info[1], err_info[2]), file=sys.stderr)
-                        print(err_info[0], file=sys.stderr)
-                        return
-                else:
-                    functions[function_name] = function_body
+                if "i" in function_body:
+                    raise FunctionError("functions cannot contain the 'i' instruction")
+                functions[function_name] = function_body
             elif char == "=":
-                if stack.pop_value() == stack.get_value():
+                if stack.pop_value(implicit=False) == stack.get_value():
                     stack.add_value(1)
                 else:
                     stack.add_value(0)
@@ -468,6 +464,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 for digit in x:
                     stack.add_value(int(digit))
             elif char == "J":
+                if not stack:
+                    dump_input()
                 try:
                     x = int("".join([str(x) for x in stack]))
                     for _ in stack[:]:
@@ -476,6 +474,8 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
                 except TypeError:
                     raise EmptyStackError("cannot join an empty stack")
             elif char == "a":
+                if not stack:
+                    dump_input()
                 stack.sort()
             elif char == "N":
                 stack.add_value(-stack.pop_value())
@@ -497,7 +497,10 @@ def interpret(program, stdin, output_function, *, debug=False, delay=0, step_by_
     
     if debug:
         print("outputting implicitly")
-    output_function(" ".join([str(x) for x in stack]))
+    if output_function.__name__ == "function_execution":
+        output_function(stack[-1])
+    else:
+        output_function(" ".join([str(x) for x in stack]))
 
 
 if not args.debug:
@@ -511,7 +514,7 @@ else:
         print("outputted: " + str(val))
         total_output += str(val)
 start = time.time()
-interpret(program, stdin, normal_execution, debug=args.debug,
+interpret(program, input if not args.no_input else lambda: "", normal_execution, debug=args.debug,
           delay=args.time, step_by_step=args.slow)
 end = time.time()
 if args.timeit:
