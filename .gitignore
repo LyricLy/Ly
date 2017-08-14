@@ -1,5 +1,2 @@
-*
-!LICENSE
-!ly.py
-!README.md
-!.gitignore
+programs
+__pycache__
