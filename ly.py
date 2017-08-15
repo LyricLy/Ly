@@ -129,7 +129,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                         else:
                             if debug:
                                 print("stack and input empty, using implicit zero")
-                            results.insert(0, 0)
+                            results.append(0)
                     else:
                         raise EmptyStackError("cannot pop from an empty stack")
 
