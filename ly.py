@@ -339,7 +339,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                 return
             elif char == ":":
                 if last == "&":
-                    if not stdin:
+                    if not stack:
                         dump_input()
                     for val in stack[:]:
                         stack.add_value(val)
