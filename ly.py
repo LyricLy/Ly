@@ -481,6 +481,9 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                 stack.add_value(-stack.pop_value())
             elif char == "I":
                 stack.add_value(stack[stack.pop_value(implicit=False)])
+            elif char == "R":
+                for i in range(stack.pop_value()):
+                    stack.add_value(i)
         except errors as err:
             if output_function.__name__ == "function_execution":
                 raise FunctionError("{}: {}$${}$${}".format(
@@ -497,7 +500,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
     
     if debug:
         print("outputting implicitly")
-    if output_function.__name__ == "function_execution":
+    if output_function.__name__ == "function_execution" and stack:
         output_function(stack[-1])
     else:
         output_function(" ".join([str(x) for x in stack]))
