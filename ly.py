@@ -487,6 +487,9 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
             elif char == "R":
                 for i in range(stack.pop_value()):
                     stack.add_value(i)
+            elif char == "'":
+                stack.add_value(ord(next))
+                idx += 1
         except errors as err:
             if output_function.__name__ == "function_execution":
                 raise FunctionError("{}: {}$${}$${}".format(
