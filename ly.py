@@ -193,8 +193,8 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                             
                 def function_execution(val):
                     nonlocal stack
-                
-                    if type(val) != str:
+
+                    if type(val) == int:
                         stack.add_value(val)
                     else:
                         stack.add_value(ord(val))
@@ -281,7 +281,10 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                 if last == "&":
                     if not stack:
                         dump_input()
-                    stack.add_value(sum(stack))
+                    result = sum(stack)
+                    for _ in stack[:]:
+                        stack.pop_value(implicit=False)
+                    stack.add_value(result)
                 else:
                     x, y = stack.pop_value(2)
                     stack.add_value(y + x)
@@ -500,8 +503,9 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
     
     if debug:
         print("outputting implicitly")
-    if output_function.__name__ == "function_execution" and stack:
-        output_function(stack[-1])
+    if output_function.__name__ == "function_execution":
+        for val in stack:
+            output_function(val)
     else:
         output_function(" ".join([str(x) for x in stack]))
 
