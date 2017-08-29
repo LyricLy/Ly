@@ -95,7 +95,6 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
 
     class Stack(list):   
         nonlocal debug
-        nonlocal stdin
         
         def get_value(self):
             if self:
@@ -105,7 +104,6 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
 
         def pop_value(self, count=1, implicit=True):
             nonlocal debug
-            nonlocal stdin
             
             results = []
             
@@ -152,7 +150,6 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
         return stdin
                 
     def dump_input():
-        nonlocal stdin
         nonlocal take_input
         
         stdin = take_input()
@@ -189,7 +186,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                 def function_input():
                     nonlocal stack
                     
-                    return str(stack.pop_value())
+                    return str(stack.pop_value()) if stack else 0
                             
                 def function_execution(val):
                     nonlocal stack
@@ -490,6 +487,12 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
             elif char == "'":
                 stack.add_value(ord(next))
                 idx += 1
+            elif char == "w":
+                time.sleep(stack.pop_value())
+            elif char == "W":
+                x = stack.pop_value(implicit=False)
+                y = stack.pop_value(implicit=False)
+                stack[y], stack[x] = stack[x], stack[y]
         except errors as err:
             if output_function.__name__ == "function_execution":
                 raise FunctionError("{}: {}$${}$${}".format(
