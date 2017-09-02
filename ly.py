@@ -482,7 +482,9 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
             elif char == "I":
                 stack.add_value(stack[stack.pop_value(implicit=False)])
             elif char == "R":
-                for i in range(stack.pop_value()):
+                x = stack.pop_value()
+                y = stack.pop_value()
+                for i in range(y, x + 1):
                     stack.add_value(i)
             elif char == "'":
                 stack.add_value(ord(next))
@@ -493,6 +495,14 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                 x = stack.pop_value(implicit=False)
                 y = stack.pop_value(implicit=False)
                 stack[y], stack[x] = stack[x], stack[y]
+            elif char == "`":
+                stack.add_value(stack.pop_value() + 1)
+            elif char == ",":
+                stack.add_value(stack.pop_value() - 1)
+            elif char == "~":
+                if not stack:
+                    dump_input()
+                stack.add_value(int(stack.pop_value(implicit=False) in stack))
         except errors as err:
             if output_function.__name__ == "function_execution":
                 raise FunctionError("{}: {}$${}$${}".format(
