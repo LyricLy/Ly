@@ -55,7 +55,7 @@ try:
         program = file.read()
 except FileNotFoundError:
     print("That file couldn't be found.")
-    sys.exit(0)
+    sys.exit(1)
 
 # remove comments and strings
 uncommented_program = re.sub(re.compile(
@@ -85,7 +85,7 @@ def match_brackets(code):
 if not match_brackets(uncommented_program):
     print("Error occurred during parsing", file=sys.stderr)
     print("SyntaxError: Unmatched brackets in program", file=sys.stderr)
-    sys.exit(0)
+    sys.exit(1)
 
 main_program_body = re.sub(re.compile(
     '.{(.*)}', re.DOTALL), "", uncommented_program)
@@ -336,7 +336,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                 else:  # we didn't break, thus we've reached EOF
                     return
             elif char == ";":
-                return
+                return True
             elif char == ":":
                 if last == "&":
                     if not stack:
@@ -500,8 +500,6 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
             elif char == ",":
                 stack.add_value(stack.pop_value() - 1)
             elif char == "~":
-                if not stack:
-                    dump_input()
                 stack.add_value(int(stack.pop_value(implicit=False) in stack))
         except errors as err:
             if output_function.__name__ == "function_execution":
@@ -509,7 +507,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                     type(err).__name__, str(err), str(idx), char))
             print("Error occurred at program index {}, instruction {} (zero-indexed, includes comments)".format(idx, char), file=sys.stderr)
             print(type(err).__name__, str(err), sep=": ", file=sys.stderr)
-            return
+            return False
         idx += 1
         if debug:
             print(" | ".join([char, str(stacks), str(backup), output_function.__name__]), end=(
@@ -524,6 +522,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
             output_function(val)
     else:
         output_function(" ".join([str(x) for x in stack]))
+    return True
 
 
 if not args.debug:
@@ -537,10 +536,12 @@ else:
         print("outputted: " + str(val))
         total_output += str(val)
 start = time.time()
-interpret(program, input if not args.no_input else lambda: "", normal_execution, debug=args.debug,
+result = interpret(program, input if not args.no_input else lambda: "", normal_execution, debug=args.debug,
           delay=args.time, step_by_step=args.slow)
 end = time.time()
 if args.timeit:
     print("\nTotal execution time in seconds: " + str(end - start))
 if args.debug:
     print("\nTotal output: " + total_output)
+    
+sys.exit(int(result))
