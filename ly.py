@@ -544,4 +544,4 @@ if args.timeit:
 if args.debug:
     print("\nTotal output: " + total_output)
     
-sys.exit(int(result))
+sys.exit(int(not result))
