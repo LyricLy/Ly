@@ -203,7 +203,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                     print("Error occurred in function {}, index {}, instruction {} (zero-indexed, includes comments)".format(
                         function_name, err_info[1], err_info[2]), file=sys.stderr)
                     print(err_info[0], file=sys.stderr)
-                    return
+                    return False
             elif next == "{":
                 pass
             elif char.isdigit():
@@ -334,7 +334,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                         idx += pos + 1
                         break
                 else:  # we didn't break, thus we've reached EOF
-                    return
+                    return True
             elif char == ";":
                 return True
             elif char == ":":
