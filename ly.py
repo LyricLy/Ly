@@ -191,13 +191,14 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                     
                     return str(stack.pop_value()) if stack else 0
                             
-                def function_execution(val):
+                def function_execution(value):
                     nonlocal stack
 
-                    if type(val) == int:
-                        stack.add_value(val)
-                    else:
-                        stack.add_value(ord(val))
+                    for val in value.splitlines():
+                        if type(val) == int:
+                            stack.add_value(val)
+                        else:
+                            stack.add_value(ord(val))
                 try:
                     interpret(functions[function_name], function_input, function_execution,
                               debug=debug, delay=delay, step_by_step=step_by_step)
