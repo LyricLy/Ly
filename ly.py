@@ -181,6 +181,9 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
             last = None
         if delay:
             time.sleep(delay)
+        if debug:
+            print(" | ".join([char, str(stacks), str(backup), output_function.__name__, str(idx - 1), str(stack_pointer)]), end=(
+                "\n" if not step_by_step else ""))
         try:
             if char in functions:
                 def function_input():
@@ -265,7 +268,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                 if last == "&":
                     if not stack:
                         dump_input()
-                    output_function(" ".join([str(x) for x in stack[:]]))
+                    output_function("\n".join([str(x) for x in stack[:]]))
                     for _ in stack[:]:
                         stack.pop_value(implicit=False)
                 else:
@@ -509,9 +512,6 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
             print(type(err).__name__, str(err), sep=": ", file=sys.stderr)
             return False
         idx += 1
-        if debug:
-            print(" | ".join([char, str(stacks), str(backup), output_function.__name__]), end=(
-                "\n" if not step_by_step else ""))
         if step_by_step:
             input()
     
