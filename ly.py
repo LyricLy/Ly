@@ -60,7 +60,7 @@ except FileNotFoundError:
 # remove comments and strings
 uncommented_program = re.sub(re.compile(
     '"(?:\\\\.|[^"\\\\])*"', re.DOTALL | re.MULTILINE), "", program)
-    
+
 uncommented_program = re.sub(re.compile("#(.*)"), "", uncommented_program)
 
 # check for matching brackets
@@ -93,9 +93,9 @@ main_program_body = re.sub(re.compile(
 
 def interpret(program, input_function, output_function, *, debug=False, delay=0, step_by_step=False):
 
-    class Stack(list):   
+    class Stack(list):
         nonlocal debug
-        
+
         def get_value(self):
             if self:
                 return self[-1]
@@ -104,9 +104,9 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
 
         def pop_value(self, count=1, implicit=True):
             nonlocal debug
-            
+
             results = []
-            
+
             for _ in range(count):
                 try:
                     results.append(self.pop())
@@ -141,19 +141,19 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
 
     def take_input():
         nonlocal input_function
-        
+
         try:
             stdin = input_function()
         except EOFError:
             stdin = ""
-        
+
         return stdin
-                
+
     def dump_input():
         nonlocal take_input
-        
+
         stdin = take_input()
-        
+
         while stdin:
             try:
                 stack.add_value(int(stdin))
@@ -188,9 +188,9 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
             if char in functions:
                 def function_input():
                     nonlocal stack
-                    
+
                     return str(stack.pop_value()) if stack else 0
-                            
+
                 def function_execution(value):
                     nonlocal stack
 
@@ -243,9 +243,12 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                                 idx = pos
                                 break
             elif char == "i":
-                stdin = input_function()
-                for char in stdin:
-                    stack.add_value(ord(char))
+                try:
+                    stdin = input_function()
+                    for char in stdin:
+                        stack.add_value(ord(char))
+                except EOFError:
+                    stack.add_value(0)
             elif char == "n":
                 if last == "&":
                     dump_input()
@@ -515,7 +518,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
         idx += 1
         if step_by_step:
             input()
-    
+
     if debug:
         print("outputting implicitly")
     if output_function.__name__ == "function_execution":
@@ -544,5 +547,5 @@ if args.timeit:
     print("\nTotal execution time in seconds: " + str(end - start))
 if args.debug:
     print("\nTotal output: " + total_output)
-    
+
 sys.exit(int(not result))
