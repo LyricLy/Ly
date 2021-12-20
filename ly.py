@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # Ly interpreter in Python
 # Created by LyricLy
@@ -9,10 +9,10 @@
 # pylint: disable=self-cls-assignment,bad-continuation,used-before-assignment,too-many-locals,no-else-return,unused-variable
 # pylint: disable=no-self-use,redefined-outer-name
 #
-# available lower case: gj
-# available upper case: ACFOPU
-# available both cases: BbHhKkMmTtVvXxZz
-# available symbols...: #().@\^|
+# available lower case: gjx
+# available upper case: CFPU
+# available both cases: HhKkMmTtVvZz
+# available symbols...: .@\|
 
 import argparse
 import time
@@ -326,6 +326,15 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                 x = stack.pop_value()
                 y = stack.pop_value()
                 stack.add_value(y % x)
+            elif char == "A":
+                x, y = stack.pop_value(2)
+                stack.add_value(int(y & x))
+            elif char == "O":
+                x, y = stack.pop_value(2)
+                stack.add_value(int(y | x))
+            elif char == "X":
+                x, y = stack.pop_value(2)
+                stack.add_value(int(y ^ x))
             elif char == "^":
                 x, y = stack.pop_value(2)
                 stack.add_value(y ** x)
