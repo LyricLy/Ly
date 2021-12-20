@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # Ly interpreter in Python
 # Created by LyricLy
@@ -9,7 +9,6 @@ import time
 import random
 import sys
 import re
-import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument("filename", help="File to interpret.")
@@ -139,6 +138,15 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
             else:
                 self.append(value)
 
+        def reset_value(self, value):
+            while stack:
+                stack.pop()
+            if type(value) == list:
+                for v in value:
+                    self.append(v)
+            else:
+                self.append(value)
+
     def take_input():
         nonlocal input_function
 
@@ -172,9 +180,9 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
     while idx < len(program):
         char = program[idx]
         try:
-            next = program[idx + 1]
+            nxt = program[idx + 1]
         except IndexError:
-            next = None
+            nxt = None
         try:
             last = program[idx - 1]
         except IndexError:
@@ -208,7 +216,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                         function_name, err_info[1], err_info[2]), file=sys.stderr)
                     print(err_info[0], file=sys.stderr)
                     return False
-            elif next == "{":
+            elif nxt == "{":
                 pass
             elif char.isdigit():
                 stack.add_value(int(char))
@@ -301,10 +309,22 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
             elif char == "/":
                 x, y = stack.pop_value(2)
                 stack.add_value(y / x)
+            elif char == "_":
+                x, y = stack.pop_value(2)
+                stack.add_value(int(y / x))
             elif char == "%":
                 x = stack.pop_value()
                 y = stack.pop_value()
                 stack.add_value(y % x)
+            elif char == "A":
+                x, y = stack.pop_value(2)
+                stack.add_value(int(y & x))
+            elif char == "O":
+                x, y = stack.pop_value(2)
+                stack.add_value(int(y | x))
+            elif char == "X":
+                x, y = stack.pop_value(2)
+                stack.add_value(int(y ^ x))
             elif char == "^":
                 x, y = stack.pop_value(2)
                 stack.add_value(y ** x)
@@ -386,6 +406,34 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                 y = stack.pop_value()
                 stack.add_value(x)
                 stack.add_value(y)
+            elif char == "B":
+                v = stack.get_value()
+                if v is not None:
+                    if stack_pointer > 0:
+                        p = stack_pointer
+                        stack_pointer -= 1
+                    else:
+                        # since this changes the indexing we don't need to decrement the pointer
+                        p = 1
+                        stacks.insert(0, Stack())
+                    stack = stacks[stack_pointer]
+                    stack.add_value(v)
+                    stack = stacks[p]
+                    stack_pointer = p
+            elif char == "b":
+                v = stack[0]
+                if v is not None:
+                    if stack_pointer > 0:
+                        p = stack_pointer
+                        stack_pointer -= 1
+                    else:
+                        # since this changes the indexing we don't need to decrement the pointer
+                        p = 1
+                        stacks.insert(0, Stack())
+                    stack = stacks[stack_pointer]
+                    stack.add_value(v)
+                    stack = stacks[p]
+                    stack_pointer = p
             elif char == "<":
                 if stack_pointer > 0:
                     stack_pointer -= 1
@@ -393,6 +441,32 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                     # since this changes the indexing we don't need to decrement the pointer
                     stacks.insert(0, Stack())
                 stack = stacks[stack_pointer]
+            elif char == "E":
+                v = stack.get_value()
+                if v is not None:
+                    p = stack_pointer
+                    try:
+                        stacks[stack_pointer + 1]
+                    except IndexError:
+                        stacks.append(Stack())
+                    stack_pointer += 1
+                    stack = stacks[stack_pointer]
+                    stack.add_value(v)
+                    stack = stacks[p]
+                    stack_pointer = p
+            elif char == "e":
+                v = stack[0]
+                if v is not None:
+                    p = stack_pointer
+                    try:
+                        stacks[stack_pointer + 1]
+                    except IndexError:
+                        stacks.append(Stack())
+                    stack_pointer += 1
+                    stack = stacks[stack_pointer]
+                    stack.add_value(v)
+                    stack = stacks[p]
+                    stack_pointer = p
             elif char == ">":
                 try:
                     stacks[stack_pointer + 1]
@@ -486,6 +560,15 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                 stack.sort()
             elif char == "N":
                 stack.add_value(-stack.pop_value())
+            elif char == "Y":
+                w = stack.pop_value(implicit=False)
+                v = stack[w]
+                if w:
+                    n = stack[:w] + stack[w+1:]
+                else:
+                    n = stack[1:]
+                stack.reset_value(n+[v,])
+                #stack = stacks[stack_pointer]
             elif char == "I":
                 stack.add_value(stack[stack.pop_value(implicit=False)])
             elif char == "R":
@@ -494,7 +577,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                 for i in range(y, x + 1):
                     stack.add_value(i)
             elif char == "'":
-                stack.add_value(ord(next))
+                stack.add_value(ord(nxt))
                 idx += 1
             elif char == "w":
                 time.sleep(stack.pop_value())
@@ -508,6 +591,20 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                 stack.add_value(stack.pop_value() - 1)
             elif char == "~":
                 stack.add_value(int(stack.pop_value(implicit=False) in stack))
+            elif char == "q":
+                r = stack.pop_value()
+                l = len(stack)
+                s = r % l
+                if s:
+                    n = stack[s:] + stack[:s]
+                    stack.reset_value(n)
+            elif char == "Q":
+                r = stack.pop_value()
+                l = len(stack)
+                s = r % l
+                if s:
+                    n = stack[-s:] + stack[:-s]
+                    stack.reset_value(n)
         except errors as err:
             if output_function.__name__ == "function_execution":
                 raise FunctionError("{}: {}$${}$${}".format(
