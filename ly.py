@@ -4,16 +4,6 @@
 # Created by LyricLy
 # Commented code is for debugging, uncomment at will.
 
-# pylint: disable=invalid-name,missing-function-docstring,line-too-long,missing-class-docstring,unidiomatic-typecheck
-# pylint: disable=too-many-statements,missing-module-docstring,too-many-branches,global-statement,unsubscriptable-object
-# pylint: disable=self-cls-assignment,bad-continuation,used-before-assignment,too-many-locals,no-else-return,unused-variable
-# pylint: disable=no-self-use,redefined-outer-name
-#
-# available lower case: gjx
-# available upper case: CFPU
-# available both cases: HhKkMmTtVvZz
-# available symbols...: .@\|
-
 import argparse
 import time
 import random
