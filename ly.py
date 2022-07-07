@@ -9,7 +9,6 @@ import time
 import random
 import sys
 import re
-import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument("filename", help="File to interpret.")
@@ -86,9 +85,6 @@ if not match_brackets(uncommented_program):
     print("Error occurred during parsing", file=sys.stderr)
     print("SyntaxError: Unmatched brackets in program", file=sys.stderr)
     sys.exit(1)
-
-main_program_body = re.sub(re.compile(
-    '.{(.*)}', re.DOTALL), "", uncommented_program)
 
 
 def interpret(program, input_function, output_function, *, debug=False, delay=0, step_by_step=False):
