@@ -51,7 +51,7 @@ class FunctionError(LyError):
 
 
 try:
-    with open(args.filename) as file:
+    with open(args.filename, encoding="utf-8") as file:
         program = file.read()
 except FileNotFoundError:
     print("That file couldn't be found.")
