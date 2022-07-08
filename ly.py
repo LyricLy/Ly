@@ -8,7 +8,6 @@ import argparse
 import time
 import random
 import sys
-import re
 
 parser = argparse.ArgumentParser()
 parser.add_argument("filename", help="File to interpret.")
@@ -56,11 +55,45 @@ except FileNotFoundError:
     print("That file couldn't be found.")
     sys.exit(1)
 
-# remove comments and strings
-uncommented_program = re.sub(re.compile(
-    '"(?:\\\\.|[^"\\\\])*"', re.DOTALL | re.MULTILINE), "", program)
 
-uncommented_program = re.sub(re.compile("#(.*)"), "", uncommented_program)
+brackets = "()[]{}"
+
+# remove comments and replace ()[]{} inside character and string literals
+def preprocess(code):
+    result = ""
+    in_string = False
+    idx = 0
+    while idx < len(code):
+        char = code[idx]
+        if in_string:
+            if char in brackets:
+                result += chr(0xFDD0 + brackets.index(char))
+            elif char == '"':
+                in_string = code[idx-1] == "\\"
+                result += char
+            else:
+                result += char
+            idx += 1
+        else: # not in string
+            if char == "#":
+                while idx < len(code) and code[idx] != "\n":
+                    idx += 1
+            elif char == '"':
+                in_string = True
+                result += char
+                idx += 1
+            elif char == "'" and idx+1 < len(code):
+                if code[idx+1] in brackets:
+                    result += char + chr(0xFDD0 + brackets.index(code[idx+1]))
+                else:
+                    result += char + code[idx+1]
+                idx += 2
+            else:
+                result += char
+                idx += 1
+    return result
+
+preprocessed_program = preprocess(program)
 
 # check for matching brackets
 
@@ -81,7 +114,7 @@ def match_brackets(code):
     return not stack
 
 
-if not match_brackets(uncommented_program):
+if not match_brackets(preprocessed_program):
     print("Error occurred during parsing", file=sys.stderr)
     print("SyntaxError: Unmatched brackets in program", file=sys.stderr)
     sys.exit(1)
@@ -200,7 +233,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                               debug=debug, delay=delay, step_by_step=step_by_step)
                 except FunctionError as err:
                     err_info = str(err).split("$$")
-                    print("Error occurred in function {}, index {}, instruction {} (zero-indexed, includes comments)".format(
+                    print("Error occurred in function {}, index {}, instruction {} (zero-indexed, excludes comments)".format(
                         function_name, err_info[1], err_info[2]), file=sys.stderr)
                     print(err_info[0], file=sys.stderr)
                     return False
@@ -327,17 +360,10 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                             stack.add_value(ord(char))
                     elif char == "\\" and program[idx + pos + 2] in ['"', 'n']:
                         pass
+                    elif 0xFDD0 <= ord(char) < 0xFDD0 + len(brackets):
+                        stack.add_value(ord(brackets[ord(char) - 0xFDD0]))
                     else:
                         stack.add_value(ord(char))
-            elif char == "#":
-                for pos, char in enumerate(program[idx + 1:]):
-                    # print("Char: " + char)
-                    if char == '\n':
-                        # print("Position: " + str(pos))
-                        idx += pos + 1
-                        break
-                else:  # we didn't break, thus we've reached EOF
-                    return True
             elif char == ";":
                 return True
             elif char == ":":
@@ -490,7 +516,10 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
                 for i in range(y, x + 1):
                     stack.add_value(i)
             elif char == "'":
-                stack.add_value(ord(next))
+                if 0xFDD0 <= ord(next) < 0xFDD0 + len(brackets):
+                    stack.add_value(ord(brackets[ord(next) - 0xFDD0]))
+                else:
+                    stack.add_value(ord(next))
                 idx += 1
             elif char == "w":
                 time.sleep(stack.pop_value())
@@ -508,7 +537,7 @@ def interpret(program, input_function, output_function, *, debug=False, delay=0,
             if output_function.__name__ == "function_execution":
                 raise FunctionError("{}: {}$${}$${}".format(
                     type(err).__name__, str(err), str(idx), char))
-            print("Error occurred at program index {}, instruction {} (zero-indexed, includes comments)".format(idx, char), file=sys.stderr)
+            print("Error occurred at program index {}, instruction {} (zero-indexed, excludes comments)".format(idx, char), file=sys.stderr)
             print(type(err).__name__, str(err), sep=": ", file=sys.stderr)
             return False
         idx += 1
@@ -536,7 +565,7 @@ else:
         print("outputted: " + str(val))
         total_output += str(val)
 start = time.time()
-result = interpret(program, input if not args.no_input else lambda: "", normal_execution, debug=args.debug,
+result = interpret(preprocessed_program, input if not args.no_input else lambda: "", normal_execution, debug=args.debug,
           delay=args.time, step_by_step=args.slow)
 end = time.time()
 if args.timeit:
