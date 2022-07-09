@@ -59,7 +59,7 @@ except FileNotFoundError:
 
 # remove comments and strings
 uncommented_program = re.sub(re.compile(
-    '"(?:\\\\.|[^"\\\\])*"', re.DOTALL | re.MULTILINE), "", program)
+    r'"(?:\\.|[^"\\])*"|\'.', re.DOTALL | re.MULTILINE), "", program)
 
 uncommented_program = re.sub(re.compile("#(.*)"), "", uncommented_program)
 
